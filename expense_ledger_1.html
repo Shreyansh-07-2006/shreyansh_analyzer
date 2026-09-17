@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — expense behavior analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --paper: #F6F3EA;
+    --paper-raised: #FCFAF4;
+    --ink: #22261F;
+    --ink-soft: #5B5F52;
+    --ink-faint: #918D7B;
+    --rule: #D9D4C3;
+    --rule-strong: #B8B29C;
+    --brick: #8B3A2E;
+    --brick-soft: #F4E7E2;
+    --green: #3F6B4A;
+    --gold: #96772A;
+    --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  :root[data-theme="dark"] {
+    --paper: #1B1D18;
+    --paper-raised: #232620;
+    --ink: #EDE9DC;
+    --ink-soft: #B6B29E;
+    --ink-faint: #7E7A69;
+    --rule: #3A3B32;
+    --rule-strong: #4C4C40;
+    --brick: #D98A76;
+    --brick-soft: #3A2622;
+    --green: #8FBE9C;
+    --gold: #D3B85C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #1B1D18;
+      --paper-raised: #232620;
+      --ink: #EDE9DC;
+      --ink-soft: #B6B29E;
+      --ink-faint: #7E7A69;
+      --rule: #3A3B32;
+      --rule-strong: #4C4C40;
+      --brick: #D98A76;
+      --brick-soft: #3A2622;
+      --green: #8FBE9C;
+      --gold: #D3B85C;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+  .masthead-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  h1.title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 5vw, 2.5rem);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .dateline {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .strap {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+    margin-top: 0.6rem;
+    max-width: 46ch;
+  }
+
+  /* ---- Upload panel ---- */
+  .intake {
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-raised);
+    padding: 1.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .intake p.lede {
+    margin: 0 0 1.1rem;
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+  }
+  .dropzone {
+    position: relative;
+    border: 1.5px dashed var(--rule-strong);
+    padding: 1.6rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--brick);
+    background: var(--brick-soft);
+  }
+  .dropzone input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .dropzone .dz-label {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    position: relative;
+    pointer-events: none;
+  }
+  .dropzone .dz-label b { color: var(--ink); font-weight: 600; }
+  .intake-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  button.link-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    color: var(--brick);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  button.link-btn:hover { color: var(--ink); }
+  .format-note {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+  }
+  .format-note code {
+    background: var(--paper);
+    padding: 0.1rem 0.3rem;
+  }
+  .status-note {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: 0.75rem 0 0;
+  }
+  .status-note.error { color: var(--brick); }
+
+  /* ---- Summary strip ---- */
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 2.25rem;
+  }
+  .summary .cell {
+    padding: 1.1rem 1.2rem;
+    border-right: 1px solid var(--rule);
+  }
+  .summary .cell:last-child { border-right: none; }
+  .summary .cell .label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    text-transform: lowercase;
+    margin-bottom: 0.4rem;
+  }
+  .summary .cell .value {
+    font-family: var(--font-display);
+    font-size: 1.55rem;
+    font-weight: 600;
+  }
+  .summary .cell.warn .value { color: var(--brick); }
+
+  section.block { margin-bottom: 2.5rem; }
+  h2.block-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* ---- Ledger rows (category breakdown) ---- */
+  .ledger-row {
+    display: flex;
+    align-items: baseline;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+    gap: 0.5rem;
+  }
+  .ledger-row .cat {
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+  .ledger-row .leader {
+    flex: 1;
+    border-bottom: 1px dotted var(--rule-strong);
+    transform: translateY(-4px);
+    min-width: 1.5rem;
+  }
+  .ledger-row .amt {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    min-width: 5.5rem;
+    text-align: right;
+  }
+  .ledger-row .bar-track {
+    width: 100%;
+    height: 3px;
+    background: var(--rule);
+    margin-top: 4px;
+  }
+  .ledger-row-wrap { display: flex; flex-direction: column; gap: 2px; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+  .ledger-row-wrap .top-line { display: flex; justify-content: space-between; align-items: baseline; }
+  .ledger-row-wrap .cat { font-size: 0.92rem; }
+  .ledger-row-wrap .amt { font-family: var(--font-mono); font-size: 0.9rem; }
+  .ledger-row-wrap .bar-fill { height: 3px; background: var(--gold); }
+
+  /* ---- Flagged list ---- */
+  .flag-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .flag-item .mark {
+    color: var(--brick);
+    font-family: var(--font-mono);
+    margin-right: 0.5rem;
+  }
+  .flag-item .desc { font-size: 0.9rem; }
+  .flag-item .sub { font-size: 0.76rem; color: var(--ink-faint); margin-top: 0.15rem; }
+  .flag-item .amt { font-family: var(--font-mono); font-weight: 600; color: var(--brick); white-space: nowrap; }
+  .empty-note { font-size: 0.88rem; color: var(--ink-faint); font-style: italic; }
+
+  /* ---- Trend ---- */
+  canvas#trend { width: 100%; height: 120px; display: block; }
+
+  /* ---- Colophon ---- */
+  .colophon {
+    border-top: 2px solid var(--ink);
+    padding-top: 1.25rem;
+    margin-top: 3rem;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .colophon p { margin: 0 0 0.6rem; }
+  .colophon b { color: var(--ink); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 560px) {
+    .summary { grid-template-columns: 1fr; }
+    .summary .cell { border-right: none; border-bottom: 1px solid var(--rule); }
+    .summary .cell:last-child { border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="masthead-row">
+      <h1 class="title">Ledger</h1>
+      <span class="dateline" id="dateline"></span>
+    </div>
+    <p class="strap">A small analyzer for personal UPI and bank statements — categorizes spending, predicts next month, and flags what looks out of place. Everything runs in your browser; the file never leaves your device.</p>
+  </header>
+
+  <div class="intake" id="intake">
+    <p class="lede">Upload a Paytm UPI statement (PDF) or a transaction CSV to begin.</p>
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".csv,.pdf">
+      <div class="dz-label"><b>Choose a file</b> or drag it here</div>
+    </label>
+    <p class="status-note hidden" id="statusNote"></p>
+    <div class="intake-actions">
+      <button class="link-btn" id="sampleBtn">Use sample data instead</button>
+      <button class="link-btn" id="formatBtn">See expected format</button>
+    </div>
+    <p class="format-note hidden" id="formatNote">
+      <b>PDF:</b> works with Paytm UPI statement exports. Parsed entirely in your browser — nothing is uploaded anywhere.<br>
+      <b>CSV columns</b>, in order: <code>date,time,description,category,amount</code> — one row per transaction. Amounts are negative for money out, positive for money in.
+      <button class="link-btn" id="downloadTemplate" style="display:block; margin-top:0.5rem;">Download a blank CSV template</button>
+    </p>
+  </div>
+
+  <div id="results" class="hidden">
+
+    <div class="summary">
+      <div class="cell">
+        <div class="label">total spent</div>
+        <div class="value" id="totalSpent">—</div>
+      </div>
+      <div class="cell">
+        <div class="label">predicted next month</div>
+        <div class="value" id="predicted">—</div>
+      </div>
+      <div class="cell warn">
+        <div class="label">flagged</div>
+        <div class="value" id="flagCount">—</div>
+      </div>
+    </div>
+
+    <section class="block">
+      <h2 class="block-title">Spending by category</h2>
+      <div id="categoryList"></div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Daily trend</h2>
+      <canvas id="trend"></canvas>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Flagged transactions</h2>
+      <div id="flagList"></div>
+    </section>
+
+    <div class="colophon">
+      <p><b>How categories are read:</b> taken directly from your statement's tags, or matched by keyword in the description when a tag is missing.</p>
+      <p><b>How the prediction works:</b> average daily spend across the uploaded period, projected to 30 days. With only a few weeks of data this is a rough estimate, not a forecast — it gets more reliable with more months on file.</p>
+      <p><b>How flags are chosen:</b> a transaction is flagged when it sits well outside the normal range for its category, using the interquartile spread of your own amounts — no fixed threshold, so it adapts to your spending.</p>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const SAMPLE_CSV = `date,time,description,category,amount
+2026-09-15,18:28,Yogesh Srivastava,Money Transfer,-60
+2026-09-15,18:09,Jyoti,Money Transfer,-40
+2026-09-15,17:58,Pratham Yaadav,Money Transfer,-20
+2026-09-15,17:57,Pratham Yaadav,Money Transfer,-100
+2026-09-15,17:41,Raja,Money Transfer,-80
+2026-09-15,17:31,Rounak Rathor,Money Received,300
+2026-09-14,22:47,Aditya Traders And Kirana Store,Groceries,-15
+2026-09-14,22:45,Nitin Gupta,Groceries,-20
+2026-09-14,22:43,Ravi Kishor Verma,Money Received,30
+2026-09-14,19:18,Vindhyachal Kumar,Shopping,-60
+2026-09-14,18:39,Ravi Kishor Verma,Money Received,50
+2026-09-14,18:13,Ajay General Store,Miscellaneous,-15
+2026-09-14,18:13,Vridhi Suplair,Miscellaneous,-20
+2026-09-14,18:08,Ravi Kishor Verma,Money Received,50
+2026-09-13,23:16,Vishal Gupta,Food,-51
+2026-09-13,23:11,Vridhi Suplair,Miscellaneous,-20
+2026-09-13,23:11,Ravi Kishor Verma,Money Received,72
+2026-09-12,20:22,Som Momo,Food,-50
+2026-09-12,20:13,Ravi Kishor Verma,Money Received,50
+2026-09-11,22:27,Flipkart Payments,Groceries,-794
+2026-09-11,22:27,Ravi Kishor Verma,Money Received,159
+2026-09-11,22:26,ZEPTO,Groceries,-159
+2026-09-11,22:26,Shreyansh verma,Money Received,795
+2026-09-10,13:33,Amod Srivastava,Money Transfer,-13.5
+2026-09-09,19:34,Rajiv Puri,Money Transfer,-10
+2026-09-09,19:02,Mohd Usman,Miscellaneous,-10
+2026-09-09,18:46,Mohd Danish,Food,-5
+2026-09-09,18:46,Mohd Danish,Food,-25
+2026-09-09,18:36,Ajay General Store,Miscellaneous,-10
+2026-09-09,17:47,Shreyansh verma,Money Received,40
+2026-09-09,00:31,ALPINE XPRESS 24x7,Groceries,-30
+2026-09-08,21:38,Abdullah Yaseen,Money Transfer,-370
+2026-09-08,21:15,Mohd Shamim,Money Received,370
+2026-09-08,04:52,Laxman egg corner,Food,-20
+2026-09-07,23:15,One97 Communications Limited,Cashback,1
+2026-09-07,23:07,Vivek meggi shop,Food,-20
+2026-09-07,21:59,Aditya Kumar,Money Received,100
+2026-09-07,19:15,Nand Kishor,Groceries,-30
+2026-09-07,19:14,Abdullah Yaseen,Money Received,30
+2026-09-06,21:50,Suman Singh,Money Received,2
+2026-09-06,19:26,Shreyansh Verma,Money Transfer,-25
+2026-09-06,19:23,Shreyansh Verma,Money Transfer,-1200
+2026-09-06,19:22,Shreyansh verma,Money Received,100
+2026-09-06,19:22,Shreyansh Verma,Money Transfer,-100
+2026-09-06,19:03,Vishal Gupta,Food,-80
+2026-09-06,17:24,Mohd Tanveer,Money Transfer,-44
+2026-09-06,15:45,Sbi Atm Cash Withdrawal,Cash Withdrawals,-1200
+2026-09-06,15:43,Ravi Kishor Verma,Money Received,1200
+2026-09-06,07:59,Laxman egg corner,Food,-40
+2026-09-05,23:44,Flipkart Payments,Groceries,-544
+2026-09-05,23:43,Blinkit,Groceries,-407
+2026-09-05,23:43,Sanjeev Kumar Verma,Money Received,1000
+2026-09-05,22:54,Mr Surjeet Singh,Food,-90
+2026-09-05,22:43,Sanjeev Kumar Verma,Money Received,100
+2026-09-05,22:42,Sanjeev Kumar Verma,Money Received,100
+2026-09-05,22:32,Ravi Kishor Verma,Money Received,10
+2026-09-05,22:26,Chandra Shekhar,Groceries,-30
+2026-09-05,22:21,Ravi Kishor Verma,Money Received,40
+2026-09-04,21:40,Mahendra Saini,Services,-20
+2026-09-04,21:32,Veg Hunger Point,Food,-120
+2026-09-04,21:32,Aditya Verma,Money Received,150
+2026-09-03,12:55,Aditya Kumar,Money Transfer,-25
+2026-09-02,18:32,Vridhi Suplair,Miscellaneous,-37
+2026-09-02,18:15,Aditya Singh,Money Transfer,-20
+2026-09-02,18:14,Ravi Kishor Verma,Money Received,36
+2026-09-02,18:10,Ravi Kishor Verma,Money Received,25
+2026-09-01,19:13,Ehtisham Ansari,Food,-70
+2026-09-01,17:42,Apple Media Services,Services,-9
+2026-09-01,13:01,Ravi Kishor Verma,Money Received,100
+2026-08-29,20:41,Suman Singh,Money Transfer,-25
+2026-08-29,20:19,Ravi Kishor Verma,Money Received,25
+2026-08-23,19:39,Dr Auto,Fuel,-90
+2026-08-23,19:36,Ravi Kishor Verma,Money Received,90
+2026-08-22,19:09,Vindhyachal Kumar,Shopping,-60
+2026-08-22,18:52,Ravi Kishor Verma,Money Received,60
+2026-08-22,04:42,ALPINE XPRESS 24x7,Groceries,-35
+2026-08-21,18:21,Mr Ajai Kumar Gupta,Miscellaneous,-20
+2026-08-21,17:56,Ravi Kishor Verma,Money Received,50
+2026-08-20,09:21,Daalchini,Food,-50
+2026-08-20,08:02,Ravi Kishor Verma,Money Received,50
+2026-08-18,22:40,Flipkart Payments,Groceries,-314
+2026-08-18,22:40,Ravi Kishor Verma,Money Received,314
+2026-08-18,20:56,Ganesh shankar general store,Groceries,-95
+2026-08-18,20:55,Ravi Kishor Verma,Money Received,100
+2026-08-18,06:12,Ritu Kanojia,Miscellaneous,-20
+2026-08-17,00:01,Ravi Kishor Verma,Money Received,20
+2026-08-16,22:53,Mohd Rehan,Miscellaneous,-10
+2026-08-16,22:51,Mohd Rehan,Miscellaneous,-72
+2026-08-16,22:46,Ganesh shankar general store,Groceries,-40
+2026-08-16,22:40,Ravi Kishor Verma,Money Received,36
+2026-08-16,22:40,Ravi Kishor Verma,Money Received,86`;
+
+  const KEYWORD_MAP = [
+    [/flipkart|zepto|blinkit|kirana|general store|grocer/i, 'Groceries'],
+    [/egg|momo|meggi|hunger|daalchini|food|restaurant|zomato|swiggy/i, 'Food'],
+    [/fuel|petrol|diesel|auto/i, 'Fuel'],
+    [/atm|cash withdrawal/i, 'Cash Withdrawals'],
+    [/shopping|kumar\b/i, 'Shopping'],
+    [/apple media|services|saini/i, 'Services'],
+    [/cashback/i, 'Cashback'],
+  ];
+
+  function fmtRs(n) {
+    const sign = n < 0 ? '−' : '';
+    return sign + 'Rs ' + Math.abs(Math.round(n)).toLocaleString('en-IN');
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const parts = lines[i].split(',');
+      const row = {};
+      header.forEach((h, idx) => row[h] = (parts[idx] !== undefined ? parts[idx].trim() : ''));
+      row.amount = parseFloat(row.amount);
+      if (isNaN(row.amount)) continue;
+      if (!row.category) {
+        let matched = 'Miscellaneous';
+        for (const [re, cat] of KEYWORD_MAP) {
+          if (re.test(row.description || '')) { matched = cat; break; }
+        }
+        row.category = matched;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function quartiles(arr) {
+    const s = [...arr].sort((a,b) => a-b);
+    const q = p => {
+      const idx = (s.length - 1) * p;
+      const lo = Math.floor(idx), hi = Math.ceil(idx);
+      return s[lo] + (s[hi] - s[lo]) * (idx - lo);
+    };
+    return { q1: q(0.25), q3: q(0.75) };
+  }
+
+  function analyze(rows) {
+    const expenses = rows.filter(r => r.amount < 0 && r.category !== 'Money Transfer')
+      .map(r => ({ ...r, amount: Math.abs(r.amount) }));
+
+    const totalSpent = rows.filter(r => r.amount < 0).reduce((a,r) => a + Math.abs(r.amount), 0);
+
+    // category summary
+    const catMap = {};
+    expenses.forEach(r => { catMap[r.category] = (catMap[r.category] || 0) + r.amount; });
+    const catSummary = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+
+    // daily series
+    const dayMap = {};
+    expenses.forEach(r => { dayMap[r.date] = (dayMap[r.date] || 0) + r.amount; });
+    const days = Object.keys(dayMap).sort();
+    const dayValues = days.map(d => dayMap[d]);
+    const avgDaily = dayValues.reduce((a,b)=>a+b,0) / (days.length || 1);
+    const predicted = avgDaily * 30;
+
+    // anomaly detection: IQR within each category
+    const byCat = {};
+    expenses.forEach(r => { (byCat[r.category] = byCat[r.category] || []).push(r); });
+    const flagged = [];
+    Object.entries(byCat).forEach(([cat, items]) => {
+      if (items.length < 3) {
+        // too few points to judge — flag only extreme absolute outliers later globally
+        return;
+      }
+      const amounts = items.map(i => i.amount);
+      const { q1, q3 } = quartiles(amounts);
+      const iqr = q3 - q1;
+      const upper = q3 + 1.5 * iqr;
+      items.forEach(i => { if (i.amount > upper && iqr > 0) flagged.push(i); });
+    });
+    // also flag single largest transactions overall if none found via IQR (small dataset fallback)
+    if (flagged.length === 0) {
+      const sorted = [...expenses].sort((a,b) => b.amount - a.amount);
+      flagged.push(...sorted.slice(0, Math.min(3, sorted.length)));
+    }
+    flagged.sort((a,b) => b.amount - a.amount);
+
+    return { totalSpent, catSummary, days, dayValues, avgDaily, predicted, flagged: flagged.slice(0, 8) };
+  }
+
+  function render(result) {
+    document.getElementById('intake').classList.add('hidden');
+    document.getElementById('results').classList.remove('hidden');
+
+    document.getElementById('totalSpent').textContent = fmtRs(result.totalSpent);
+    document.getElementById('predicted').textContent = fmtRs(result.predicted);
+    document.getElementById('flagCount').textContent = result.flagged.length;
+
+    const catList = document.getElementById('categoryList');
+    catList.innerHTML = '';
+    const maxCat = result.catSummary.length ? result.catSummary[0][1] : 1;
+    result.catSummary.forEach(([cat, amt]) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'ledger-row-wrap';
+      const pct = Math.max(4, (amt / maxCat) * 100);
+      wrap.innerHTML = `
+        <div class="top-line">
+          <span class="cat">${cat}</span>
+          <span class="amt">${fmtRs(amt)}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      `;
+      catList.appendChild(wrap);
+    });
+
+    const flagList = document.getElementById('flagList');
+    flagList.innerHTML = '';
+    if (result.flagged.length === 0) {
+      flagList.innerHTML = '<p class="empty-note">Nothing stands out — spending looks consistent across the period.</p>';
+    } else {
+      result.flagged.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'flag-item';
+        item.innerHTML = `
+          <div>
+            <div class="desc"><span class="mark">▲</span>${f.description || 'Transaction'}</div>
+            <div class="sub">${f.date} · ${f.category}</div>
+          </div>
+          <div class="amt">${fmtRs(f.amount)}</div>
+        `;
+        flagList.appendChild(item);
+      });
+    }
+
+    drawTrend(result.days, result.dayValues, result.avgDaily);
+  }
+
+  function drawTrend(days, values, avg) {
+    const canvas = document.getElementById('trend');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || 640, h = 120;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,w,h);
+
+    const styles = getComputedStyle(document.documentElement);
+    const ink = styles.getPropertyValue('--ink-soft').trim();
+    const rule = styles.getPropertyValue('--rule').trim();
+    const gold = styles.getPropertyValue('--gold').trim();
+
+    if (!values.length) return;
+    const max = Math.max(...values, avg) * 1.15 || 1;
+    const padL = 4, padR = 4, padT = 10, padB = 16;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const stepX = values.length > 1 ? plotW / (values.length - 1) : 0;
+
+    // average line
+    const avgY = padT + plotH - (avg / max) * plotH;
+    ctx.strokeStyle = rule;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.moveTo(padL, avgY);
+    ctx.lineTo(w - padR, avgY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // trend line
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = padL + i * stepX;
+      const y = padT + plotH - (v / max) * plotH;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // dots
+    ctx.fillStyle = gold;
+    values.forEach((v, i) => {
+      const x = padL + i * stepX;
+      const y = padT + plotH - (v / max) * plotH;
+      ctx.beginPath(); ctx.arc(x, y, 1.6, 0, Math.PI*2); ctx.fill();
+    });
+
+    // labels
+    ctx.fillStyle = ink;
+    ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+    if (days.length) {
+      ctx.textAlign = 'left';
+      ctx.fillText(days[0].slice(5), padL, h - 2);
+      ctx.textAlign = 'right';
+      ctx.fillText(days[days.length-1].slice(5), w - padR, h - 2);
+    }
+  }
+
+  const MONTHS = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+  const dateAnchorRe = /^(\d{1,2})\s+([A-Za-z]{3})$/;
+  const timeRe = /^\d{1,2}:\d{2}\s*(?:AM|PM)$/i;
+  const amountFindRe = /([-+])\s*Rs\.?\s*([\d,]+(?:\.\d+)?)/;
+  const tagFindRe = /#[^A-Za-z]*([A-Za-z][A-Za-z &]*)/;
+  const skipDescRe = /^(UPI ID:|UPI Ref No:|Note:)/i;
+
+  function colOfX(x) {
+    if (x < 65) return 1;
+    if (x < 250) return 2;
+    if (x < 360) return 3;
+    if (x < 460) return 4;
+    return 5;
+  }
+
+  async function extractPaytmTxns(arrayBuffer) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const year = new Date().getFullYear();
+    const txns = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items
+        .filter(it => it.str.trim())
+        .map(it => ({ x: it.transform[4], y: it.transform[5], str: it.str.trim(), col: colOfX(it.transform[4]) }));
+
+      const anchors = items
+        .filter(it => it.col === 1 && dateAnchorRe.test(it.str))
+        .map(it => ({ y: it.y, m: dateAnchorRe.exec(it.str) }))
+        .sort((a, b) => b.y - a.y);
+
+      for (let k = 0; k < anchors.length; k++) {
+        const topY = anchors[k].y;
+        const bottomY = k + 1 < anchors.length ? anchors[k + 1].y : -Infinity;
+        const windowItems = items.filter(it => it.y <= topY && it.y > bottomY);
+
+        const col1 = windowItems.filter(it => it.col === 1).sort((a, b) => b.y - a.y);
+        const col2 = windowItems.filter(it => it.col === 2).sort((a, b) => b.y - a.y);
+        const col3 = windowItems.filter(it => it.col === 3).sort((a, b) => b.y - a.y);
+        const col5 = windowItems.filter(it => it.col === 5).sort((a, b) => b.y - a.y);
+
+        const timeItem = col1.find(it => timeRe.test(it.str));
+        const time = timeItem ? timeItem.str : '';
+
+        const descLines = [];
+        for (const it of col2) {
+          if (skipDescRe.test(it.str)) break;
+          descLines.push(it.str);
+        }
+        const description = descLines.length ? descLines.join(' ') : 'Transaction';
+
+        let tag = '';
+        for (const it of col3) {
+          const tm = tagFindRe.exec(it.str);
+          if (tm) { tag = tm[1].trim(); break; }
+        }
+
+        let amount = null;
+        for (const it of col5) {
+          const am = amountFindRe.exec(it.str);
+          if (am) { amount = (am[1] === '-' ? -1 : 1) * parseFloat(am[2].replace(/,/g, '')); break; }
+        }
+
+        const monthIdx = MONTHS[anchors[k].m[2].toLowerCase()];
+        if (time && amount !== null && monthIdx !== undefined) {
+          const d = new Date(year, monthIdx, parseInt(anchors[k].m[1], 10));
+          const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          txns.push({ date: dateStr, time, description, category: tag, amount });
+        }
+      }
+    }
+    return txns;
+  }
+
+  async function handlePdfFile(file) {
+    const status = document.getElementById('statusNote');
+    status.classList.remove('hidden', 'error');
+    status.textContent = 'Reading PDF…';
+    try {
+      const buf = await file.arrayBuffer();
+      const txns = await extractPaytmTxns(buf);
+      if (!txns.length) throw new Error('no transactions found');
+      status.classList.add('hidden');
+      render(analyze(txns));
+    } catch (err) {
+      status.classList.add('error');
+      status.textContent = 'Could not read transactions from this PDF — try the CSV option instead.';
+    }
+  }
+
+  function handleFile(file) {
+    const name = (file.name || '').toLowerCase();
+    if (name.endsWith('.pdf') || file.type === 'application/pdf') {
+      handlePdfFile(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const rows = parseCSV(e.target.result);
+        if (!rows.length) throw new Error('empty');
+        render(analyze(rows));
+      } catch (err) {
+        alert('Could not read that file. Check it matches the expected column format.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  document.getElementById('sampleBtn').addEventListener('click', () => {
+    render(analyze(parseCSV(SAMPLE_CSV)));
+  });
+
+  document.getElementById('formatBtn').addEventListener('click', () => {
+    document.getElementById('formatNote').classList.toggle('hidden');
+  });
+
+  document.getElementById('downloadTemplate').addEventListener('click', () => {
+    const blank = 'date,time,description,category,amount\n2026-01-01,12:00,Example Store,Groceries,-250\n2026-01-02,09:30,Friend Name,Money Received,500\n';
+    const blob = new Blob([blank], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'expense_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+</body>
+</html>
