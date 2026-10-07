@@ -3,25 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>shreyansh's EXPENSE ANALYZER
-</title>
+<title> Expense behavior analyzer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root {
-    --paper: #F6F3EA;
+    --paper: ;
     --paper-raised: #FCFAF4;
     --ink: #22261F;
     --ink-soft: #5B5F52;
     --ink-faint: #918D7B;
     --rule: #D9D4C3;
     --rule-strong: #B8B29C;
-    --brick: #8B3A2E;
-    --brick-soft: #F4E7E2;
+    --brick: #1F6F6B;
+    --brick-soft: #E3F0EF;
     --green: #3F6B4A;
-    --gold: #96772A;
+    --gold: #C08A3E;
     --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
     --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
     --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -34,10 +33,10 @@
     --ink-faint: #7E7A69;
     --rule: #3A3B32;
     --rule-strong: #4C4C40;
-    --brick: #D98A76;
-    --brick-soft: #3A2622;
+    --brick: #5FBDB7;
+    --brick-soft: #1C3A38;
     --green: #8FBE9C;
-    --gold: #D3B85C;
+    --gold: #E0AD63;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -48,10 +47,10 @@
       --ink-faint: #7E7A69;
       --rule: #3A3B32;
       --rule-strong: #4C4C40;
-      --brick: #D98A76;
-      --brick-soft: #3A2622;
+     --brick: #5FBDB7;
+      --brick-soft: #1C3A38;
       --green: #8FBE9C;
-      --gold: #D3B85C;
+      --gold: #E0AD63;
     }
   }
 
@@ -206,6 +205,12 @@
     font-weight: 600;
   }
   .summary .cell.warn .value { color: var(--brick); }
+  .summary .cell .sublabel {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink-faint);
+    margin-top: 0.3rem;
+  }
 
   section.block { margin-bottom: 2.5rem; }
   h2.block-title {
@@ -216,6 +221,31 @@
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--rule);
   }
+  .hint-text { font-size: 0.84rem; color: var(--ink-soft); margin: -0.4rem 0 0.9rem; }
+
+  .behavior-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem; }
+  .behavior-cell { border: 1px solid var(--rule); padding: 0.8rem 1rem; }
+  .behavior-cell .sublabel { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); }
+  .behavior-value { font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; margin-top: 0.3rem; }
+
+  .budget-row { padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+  .budget-row .top-line { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.35rem; }
+  .budget-row input[type="number"] {
+    width: 5.5rem; font-family: var(--font-mono); font-size: 0.82rem;
+    border: 1px solid var(--rule-strong); background: var(--paper); color: var(--ink);
+    padding: 0.15rem 0.4rem;
+  }
+  .budget-row .bar-track { height: 5px; background: var(--rule); }
+  .budget-row .bar-fill { height: 5px; background: var(--green); }
+  .budget-row .bar-fill.over { background: var(--brick); }
+  .budget-row .over-note { font-size: 0.74rem; color: var(--brick); margin-top: 0.25rem; }
+
+  .recur-item {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem;
+  }
+  .recur-item .sub { font-size: 0.76rem; color: var(--ink-faint); }
+  .recur-item .amt { font-family: var(--font-mono); }
 
   /* ---- Ledger rows (category breakdown) ---- */
   .ledger-row {
@@ -301,17 +331,17 @@
 
   <header class="masthead">
     <div class="masthead-row">
-      <h1 class="title">XPENSE TRACKER</h1>
+      <h1 class="title">XPENSE ANALYZER</h1>
       <span class="dateline" id="dateline"></span>
     </div>
-    <p class="strap">A small analyzer for personal UPI and bank statements — categorizes spending, predicts next month, and flags what looks out of place. Everything runs in your browser; the file never leaves your device.</p>
+    <p class="strap"> An expense tracker is basically take input from you and predict the next month personal expenses </p>
   </header>
 
   <div class="intake" id="intake">
-    <p class="lede">Upload a Paytm UPI statement (PDF) or a transaction CSV to begin.</p>
+    <p class="lede">Upload a Paytm UPI statement (PDF) or a transaction CSV to begin. You can select more than one file (e.g. several months) — they'll be combined.</p>
     <label class="dropzone" id="dropzone">
-      <input type="file" id="fileInput" accept=".csv,.pdf">
-      <div class="dz-label"><b>Choose a file</b> or drag it here</div>
+      <input type="file" id="fileInput" accept=".csv,.pdf" multiple>
+      <div class="dz-label"><b>Choose file(s)</b> or drag them here</div>
     </label>
     <p class="status-note hidden" id="statusNote"></p>
     <div class="intake-actions">
@@ -335,6 +365,7 @@
       <div class="cell">
         <div class="label">predicted next month</div>
         <div class="value" id="predicted">—</div>
+        <div class="sublabel" id="predictedRange"></div>
       </div>
       <div class="cell warn">
         <div class="label">flagged</div>
@@ -342,14 +373,53 @@
       </div>
     </div>
 
+    <section class="block" id="monthBlock" style="display:none;">
+      <h2 class="block-title">Spend by month</h2>
+      <div id="monthList"></div>
+    </section>
+
     <section class="block">
       <h2 class="block-title">Spending by category</h2>
       <div id="categoryList"></div>
     </section>
 
     <section class="block">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <h2 class="block-title" style="border:none; margin-bottom:0; padding-bottom:0;">Category budgets</h2>
+        <button class="link-btn" id="budgetToggle">Set limits</button>
+      </div>
+      <div id="budgetPanel" class="hidden"></div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Spending behavior</h2>
+      <div class="behavior-grid">
+        <div class="behavior-cell">
+          <div class="sublabel">weekday avg / day</div>
+          <div class="behavior-value" id="weekdayAvg">—</div>
+        </div>
+        <div class="behavior-cell">
+          <div class="sublabel">weekend avg / day</div>
+          <div class="behavior-value" id="weekendAvg">—</div>
+        </div>
+      </div>
+      <div id="timeOfDayList" style="margin-top:1rem;"></div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Spending clusters</h2>
+      <p class="hint-text">Transactions grouped automatically by size (K-Means clustering) — a rough read on your small day-to-day buys vs occasional big-ticket ones.</p>
+      <div id="clusterList"></div>
+    </section>
+
+    <section class="block">
       <h2 class="block-title">Daily trend</h2>
       <canvas id="trend"></canvas>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">Recurring payments</h2>
+      <div id="recurringList"></div>
     </section>
 
     <section class="block">
@@ -359,14 +429,18 @@
 
     <div class="colophon">
       <p><b>How categories are read:</b> taken directly from your statement's tags, or matched by keyword in the description when a tag is missing.</p>
-      <p><b>How the prediction works:</b> average daily spend across the uploaded period, projected to 30 days. With only a few weeks of data this is a rough estimate, not a forecast — it gets more reliable with more months on file.</p>
+      <p><b>How the prediction works:</b> average daily spend across the uploaded period, projected to 30 days, with an 80% confidence range based on how variable your daily spending is. With only a few weeks of data this is a rough estimate — it gets more reliable with more months on file.</p>
       <p><b>How flags are chosen:</b> a transaction is flagged when it sits well outside the normal range for its category, using the interquartile spread of your own amounts — no fixed threshold, so it adapts to your spending.</p>
+      <p><b>How clusters are formed:</b> K-Means groups every expense into three size bands purely from the amounts themselves — no manual thresholds.</p>
+      <p><b>How recurring payments are found:</b> merchants that appear 2 or more times, plus anything tagged as an automatic or subscription payment.</p>
+      <button class="link-btn" id="exportPdf" style="margin-top:0.5rem;">Download this as a PDF report</button>
     </div>
 
   </div>
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function() {
   const SAMPLE_CSV = `date,time,description,category,amount
@@ -510,6 +584,46 @@
     return { q1: q(0.25), q3: q(0.75) };
   }
 
+  function stdDev(arr) {
+    const mean = arr.reduce((a,b)=>a+b,0) / (arr.length || 1);
+    const variance = arr.reduce((a,b) => a + (b-mean)*(b-mean), 0) / (arr.length || 1);
+    return Math.sqrt(variance);
+  }
+
+  // simple 1-D K-Means on log-scaled amounts, k=3, fixed iterations
+  function kmeans1D(values, k, iterations) {
+    const logVals = values.map(v => Math.log1p(v));
+    const sorted = [...logVals].sort((a,b) => a-b);
+    let centroids = [0,1,2].map(i => sorted[Math.floor((i+0.5) * sorted.length / k)] ?? sorted[sorted.length-1]);
+    let assignments = new Array(logVals.length).fill(0);
+    for (let iter = 0; iter < iterations; iter++) {
+      assignments = logVals.map(v => {
+        let best = 0, bestDist = Infinity;
+        centroids.forEach((c, ci) => { const d = Math.abs(v-c); if (d < bestDist) { bestDist = d; best = ci; } });
+        return best;
+      });
+      centroids = centroids.map((c, ci) => {
+        const members = logVals.filter((_, i) => assignments[i] === ci);
+        return members.length ? members.reduce((a,b)=>a+b,0) / members.length : c;
+      });
+    }
+    return assignments;
+  }
+
+  function timeBucket(timeStr) {
+    if (!timeStr) return 'Unknown';
+    const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(timeStr.trim());
+    if (!m) return 'Unknown';
+    let h = parseInt(m[1], 10);
+    const ampm = (m[3] || '').toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    if (h >= 5 && h < 12) return 'Morning (5am–12pm)';
+    if (h >= 12 && h < 17) return 'Afternoon (12–5pm)';
+    if (h >= 17 && h < 21) return 'Evening (5–9pm)';
+    return 'Night (9pm–5am)';
+  }
+
   function analyze(rows) {
     const expenses = rows.filter(r => r.amount < 0 && r.category !== 'Money Transfer')
       .map(r => ({ ...r, amount: Math.abs(r.amount) }));
@@ -521,46 +635,134 @@
     expenses.forEach(r => { catMap[r.category] = (catMap[r.category] || 0) + r.amount; });
     const catSummary = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
 
-    // daily series
+    // daily series — fill zero-spend days too, so the average reflects the full period
     const dayMap = {};
     expenses.forEach(r => { dayMap[r.date] = (dayMap[r.date] || 0) + r.amount; });
-    const days = Object.keys(dayMap).sort();
-    const dayValues = days.map(d => dayMap[d]);
+    const allDates = rows.map(r => r.date).filter(Boolean).sort();
+    const minDate = new Date(allDates[0] + 'T00:00:00');
+    const maxDate = new Date(allDates[allDates.length - 1] + 'T00:00:00');
+    const days = [];
+    for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const dayValues = days.map(d => dayMap[d] || 0);
     const avgDaily = dayValues.reduce((a,b)=>a+b,0) / (days.length || 1);
     const predicted = avgDaily * 30;
+    const dailyStd = stdDev(dayValues);
+    const predStd = dailyStd * Math.sqrt(30);
+    const predLow = Math.max(0, predicted - 1.28 * predStd);
+    const predHigh = predicted + 1.28 * predStd;
+
+    // monthly breakdown (only shown if data spans more than one month)
+    const monthMap = {};
+    expenses.forEach(r => {
+      const ym = r.date.slice(0, 7);
+      monthMap[ym] = (monthMap[ym] || 0) + r.amount;
+    });
+    const monthSummary = Object.entries(monthMap).sort((a,b) => a[0].localeCompare(b[0]));
 
     // anomaly detection: IQR within each category
     const byCat = {};
     expenses.forEach(r => { (byCat[r.category] = byCat[r.category] || []).push(r); });
     const flagged = [];
     Object.entries(byCat).forEach(([cat, items]) => {
-      if (items.length < 3) {
-        // too few points to judge — flag only extreme absolute outliers later globally
-        return;
-      }
+      if (items.length < 3) return;
       const amounts = items.map(i => i.amount);
       const { q1, q3 } = quartiles(amounts);
       const iqr = q3 - q1;
       const upper = q3 + 1.5 * iqr;
       items.forEach(i => { if (i.amount > upper && iqr > 0) flagged.push(i); });
     });
-    // also flag single largest transactions overall if none found via IQR (small dataset fallback)
     if (flagged.length === 0) {
       const sorted = [...expenses].sort((a,b) => b.amount - a.amount);
       flagged.push(...sorted.slice(0, Math.min(3, sorted.length)));
     }
     flagged.sort((a,b) => b.amount - a.amount);
 
-    return { totalSpent, catSummary, days, dayValues, avgDaily, predicted, flagged: flagged.slice(0, 8) };
+    // behavior: weekday vs weekend
+    let weekendTotal = 0, weekdayTotal = 0, weekendDays = new Set(), weekdayDays = new Set();
+    expenses.forEach(r => {
+      const d = new Date(r.date + 'T00:00:00');
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      if (isWeekend) { weekendTotal += r.amount; weekendDays.add(r.date); }
+      else { weekdayTotal += r.amount; weekdayDays.add(r.date); }
+    });
+    const weekdayAvg = weekdayTotal / (weekdayDays.size || 1);
+    const weekendAvg = weekendTotal / (weekendDays.size || 1);
+
+    // behavior: time of day
+    const timeMap = {};
+    expenses.forEach(r => {
+      const b = timeBucket(r.time);
+      timeMap[b] = (timeMap[b] || 0) + r.amount;
+    });
+    const timeSummary = Object.entries(timeMap).sort((a,b) => b[1]-a[1]);
+
+    // clustering (K-Means, k=3, on amount)
+    const clusterLabelsOrdered = ['Small purchases', 'Medium purchases', 'Large purchases'];
+    let clusters = [];
+    if (expenses.length >= 3) {
+      const assignments = kmeans1D(expenses.map(e => e.amount), 3, 8);
+      const withCluster = expenses.map((e, i) => ({ ...e, clusterId: assignments[i] }));
+      const clusterMeans = [0,1,2].map(cid => {
+        const members = withCluster.filter(e => e.clusterId === cid);
+        const mean = members.length ? members.reduce((a,b)=>a+b.amount,0)/members.length : 0;
+        return { cid, mean, count: members.length, total: members.reduce((a,b)=>a+b.amount,0) };
+      }).sort((a,b) => a.mean - b.mean);
+      clusters = clusterMeans.map((c, idx) => ({ label: clusterLabelsOrdered[idx], count: c.count, total: c.total, mean: c.mean }));
+    }
+
+    // recurring payments: same description appearing 2+ times
+    const descMap = {};
+    expenses.forEach(r => { (descMap[r.description] = descMap[r.description] || []).push(r); });
+    const recurring = Object.entries(descMap)
+      .filter(([, items]) => items.length >= 2)
+      .map(([desc, items]) => ({
+        description: desc,
+        count: items.length,
+        avgAmount: items.reduce((a,b)=>a+b.amount,0) / items.length,
+        total: items.reduce((a,b)=>a+b.amount,0),
+      }))
+      .sort((a,b) => b.count - a.count);
+
+    return {
+      totalSpent, catSummary, days, dayValues, avgDaily, predicted, predLow, predHigh,
+      flagged: flagged.slice(0, 8), monthSummary, weekdayAvg, weekendAvg, timeSummary, clusters, recurring,
+    };
   }
 
+  let currentResult = null;
+
   function render(result) {
+    currentResult = result;
     document.getElementById('intake').classList.add('hidden');
     document.getElementById('results').classList.remove('hidden');
 
     document.getElementById('totalSpent').textContent = fmtRs(result.totalSpent);
     document.getElementById('predicted').textContent = fmtRs(result.predicted);
+    document.getElementById('predictedRange').textContent = `80% range: ${fmtRs(result.predLow)} – ${fmtRs(result.predHigh)}`;
     document.getElementById('flagCount').textContent = result.flagged.length;
+
+    // month breakdown (only if more than one month present)
+    const monthBlock = document.getElementById('monthBlock');
+    const monthList = document.getElementById('monthList');
+    if (result.monthSummary.length > 1) {
+      monthBlock.style.display = '';
+      monthList.innerHTML = '';
+      const maxMonth = Math.max(...result.monthSummary.map(m => m[1]));
+      result.monthSummary.forEach(([ym, amt]) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'ledger-row-wrap';
+        const pct = Math.max(4, (amt / maxMonth) * 100);
+        wrap.innerHTML = `
+          <div class="top-line"><span class="cat">${ym}</span><span class="amt">${fmtRs(amt)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        `;
+        monthList.appendChild(wrap);
+      });
+    } else {
+      monthBlock.style.display = 'none';
+    }
 
     const catList = document.getElementById('categoryList');
     catList.innerHTML = '';
@@ -578,6 +780,65 @@
       `;
       catList.appendChild(wrap);
     });
+
+    renderBudgets(result);
+
+    // behavior
+    document.getElementById('weekdayAvg').textContent = fmtRs(result.weekdayAvg);
+    document.getElementById('weekendAvg').textContent = fmtRs(result.weekendAvg);
+    const timeList = document.getElementById('timeOfDayList');
+    timeList.innerHTML = '';
+    const maxTime = result.timeSummary.length ? Math.max(...result.timeSummary.map(t => t[1])) : 1;
+    result.timeSummary.forEach(([bucket, amt]) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'ledger-row-wrap';
+      const pct = Math.max(4, (amt / maxTime) * 100);
+      wrap.innerHTML = `
+        <div class="top-line"><span class="cat">${bucket}</span><span class="amt">${fmtRs(amt)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      `;
+      timeList.appendChild(wrap);
+    });
+
+    // clusters
+    const clusterList = document.getElementById('clusterList');
+    clusterList.innerHTML = '';
+    if (!result.clusters.length) {
+      clusterList.innerHTML = '<p class="empty-note">Not enough transactions to cluster yet.</p>';
+    } else {
+      result.clusters.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'recur-item';
+        item.innerHTML = `
+          <div>
+            <div>${c.label}</div>
+            <div class="sub">${c.count} transactions · avg ${fmtRs(c.mean)}</div>
+          </div>
+          <div class="amt">${fmtRs(c.total)}</div>
+        `;
+        clusterList.appendChild(item);
+      });
+    }
+
+    // recurring
+    const recurList = document.getElementById('recurringList');
+    recurList.innerHTML = '';
+    if (!result.recurring.length) {
+      recurList.innerHTML = '<p class="empty-note">No repeat merchants detected in this period.</p>';
+    } else {
+      result.recurring.slice(0, 10).forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'recur-item';
+        item.innerHTML = `
+          <div>
+            <div>${r.description}</div>
+            <div class="sub">${r.count}× · avg ${fmtRs(r.avgAmount)}</div>
+          </div>
+          <div class="amt">${fmtRs(r.total)}</div>
+        `;
+        recurList.appendChild(item);
+      });
+    }
 
     const flagList = document.getElementById('flagList');
     flagList.innerHTML = '';
@@ -600,6 +861,80 @@
 
     drawTrend(result.days, result.dayValues, result.avgDaily);
   }
+
+  const budgets = {}; // category -> limit, in-memory only
+
+  function renderBudgets(result) {
+    const panel = document.getElementById('budgetPanel');
+    panel.innerHTML = '';
+    result.catSummary.forEach(([cat, amt]) => {
+      const limit = budgets[cat];
+      const row = document.createElement('div');
+      row.className = 'budget-row';
+      const pct = limit ? Math.min(100, (amt / limit) * 100) : 0;
+      const over = limit && amt > limit;
+      row.innerHTML = `
+        <div class="top-line">
+          <span>${cat}</span>
+          <span>${fmtRs(amt)}${limit ? ' / Rs ' + limit.toLocaleString('en-IN') : ''}
+            <input type="number" data-cat="${cat}" placeholder="set limit" value="${limit || ''}" style="margin-left:0.5rem;">
+          </span>
+        </div>
+        ${limit ? `<div class="bar-track"><div class="bar-fill ${over ? 'over' : ''}" style="width:${pct}%"></div></div>` : ''}
+        ${over ? `<div class="over-note">Over budget by ${fmtRs(amt - limit)}</div>` : ''}
+      `;
+      panel.appendChild(row);
+    });
+    panel.querySelectorAll('input[type="number"]').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const cat = e.target.dataset.cat;
+        const val = parseFloat(e.target.value);
+        if (val > 0) budgets[cat] = val; else delete budgets[cat];
+        renderBudgets(currentResult);
+      });
+    });
+  }
+
+  document.getElementById('budgetToggle').addEventListener('click', () => {
+    document.getElementById('budgetPanel').classList.toggle('hidden');
+  });
+
+  document.getElementById('exportPdf').addEventListener('click', () => {
+    if (!currentResult || !window.jspdf) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const r = currentResult;
+    let y = 18;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+    doc.text('Ledger — Expense Report', 14, y); y += 10;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+    doc.text(`Total spent: ${fmtRs(r.totalSpent)}`, 14, y); y += 7;
+    doc.text(`Predicted next month: ${fmtRs(r.predicted)} (range ${fmtRs(r.predLow)} - ${fmtRs(r.predHigh)})`, 14, y); y += 7;
+    doc.text(`Weekday avg/day: ${fmtRs(r.weekdayAvg)}   Weekend avg/day: ${fmtRs(r.weekendAvg)}`, 14, y); y += 10;
+
+    doc.setFont('helvetica', 'bold'); doc.text('Spending by category', 14, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    r.catSummary.forEach(([cat, amt]) => { doc.text(`${cat}: ${fmtRs(amt)}`, 16, y); y += 6; });
+    y += 4;
+
+    doc.setFont('helvetica', 'bold'); doc.text('Spending clusters', 14, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    r.clusters.forEach(c => { doc.text(`${c.label}: ${c.count} txns, total ${fmtRs(c.total)}`, 16, y); y += 6; });
+    y += 4;
+
+    if (y > 250) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica', 'bold'); doc.text('Recurring payments', 14, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    r.recurring.slice(0, 10).forEach(rec => { doc.text(`${rec.description}: ${rec.count}x, avg ${fmtRs(rec.avgAmount)}`, 16, y); y += 6; });
+    y += 4;
+
+    if (y > 250) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica', 'bold'); doc.text('Flagged transactions', 14, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    r.flagged.forEach(f => { doc.text(`${f.date} — ${f.description}: ${fmtRs(f.amount)}`, 16, y); y += 6; });
+
+    doc.save('expense-report.pdf');
+  });
 
   function drawTrend(days, values, avg) {
     const canvas = document.getElementById('trend');
@@ -738,51 +1073,72 @@
     return txns;
   }
 
-  async function handlePdfFile(file) {
-    const status = document.getElementById('statusNote');
-    status.classList.remove('hidden', 'error');
-    status.textContent = 'Reading PDF…';
-    try {
-      const buf = await file.arrayBuffer();
-      const txns = await extractPaytmTxns(buf);
-      if (!txns.length) throw new Error('no transactions found');
-      status.classList.add('hidden');
-      render(analyze(txns));
-    } catch (err) {
-      status.classList.add('error');
-      status.textContent = 'Could not read transactions from this PDF — try the CSV option instead.';
-    }
+  async function parsePdfToRows(file) {
+    const buf = await file.arrayBuffer();
+    return await extractPaytmTxns(buf);
   }
 
-  function handleFile(file) {
-    const name = (file.name || '').toLowerCase();
-    if (name.endsWith('.pdf') || file.type === 'application/pdf') {
-      handlePdfFile(file);
+  function parseCsvToRows(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const rows = parseCSV(e.target.result);
+          if (!rows.length) throw new Error('empty');
+          resolve(rows);
+        } catch (err) { reject(err); }
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList);
+    if (!files.length) return;
+    const status = document.getElementById('statusNote');
+    status.classList.remove('hidden', 'error');
+    status.textContent = files.length > 1 ? `Reading ${files.length} files…` : 'Reading file…';
+
+    let allRows = [];
+    let failed = [];
+    for (const file of files) {
+      const name = (file.name || '').toLowerCase();
+      try {
+        const rows = name.endsWith('.pdf') || file.type === 'application/pdf'
+          ? await parsePdfToRows(file)
+          : await parseCsvToRows(file);
+        if (!rows.length) throw new Error('empty');
+        allRows = allRows.concat(rows);
+      } catch (err) {
+        failed.push(file.name);
+      }
+    }
+
+    if (!allRows.length) {
+      status.classList.add('error');
+      status.textContent = 'Could not read transactions from the selected file(s) — try the CSV option instead.';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const rows = parseCSV(e.target.result);
-        if (!rows.length) throw new Error('empty');
-        render(analyze(rows));
-      } catch (err) {
-        alert('Could not read that file. Check it matches the expected column format.');
-      }
-    };
-    reader.readAsText(file);
+    status.classList.add('hidden');
+    if (failed.length) {
+      status.classList.remove('hidden');
+      status.classList.remove('error');
+      status.textContent = `Note: could not read ${failed.join(', ')} — the rest loaded fine.`;
+    }
+    render(analyze(allRows));
   }
 
   document.getElementById('dateline').textContent = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
-  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); });
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
   dropzone.addEventListener('drop', e => {
     e.preventDefault(); dropzone.classList.remove('drag');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
   });
 
   document.getElementById('sampleBtn').addEventListener('click', () => {
